@@ -1,0 +1,160 @@
+version: '1.0'
+services:
+  - name: etcd1
+    type: docker
+    image: d2cio/patroni
+    version: latest
+    startCommand: etcd
+    env:
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: http://{{=service('etcd1').getAppAlias()}}-1:2380
+      ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+      ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+      ETCD_INITIAL_CLUSTER: "{{=service('etcd1').getAppAlias()}}-1=http://{{=service('etcd1').getAppAlias()}}-1:2380,{{=service('etcd2').getAppAlias()}}-1=http://{{=service('etcd2').getAppAlias()}}-1:2380,{{=service('etcd3').getAppAlias()}}-1=http://{{=service('etcd3').getAppAlias()}}-1:2380"
+      ETCD_INITIAL_CLUSTER_STATE: new
+      ETCD_INITIAL_CLUSTER_TOKEN: tutorial
+      ETCD_NAME: "{{=service('etcd1').getAppAlias()}}-1"
+    deployTo:
+      - patroni1
+
+  - name: etcd2
+    type: docker
+    image: d2cio/patroni
+    version: latest
+    startCommand: etcd
+    env:
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: http://{{=service('etcd2').getAppAlias()}}-1:2380
+      ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+      ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+      ETCD_INITIAL_CLUSTER: "{{=service('etcd1').getAppAlias()}}-1=http://{{=service('etcd1').getAppAlias()}}-1:2380,{{=service('etcd2').getAppAlias()}}-1=http://{{=service('etcd2').getAppAlias()}}-1:2380,{{=service('etcd3').getAppAlias()}}-1=http://{{=service('etcd3').getAppAlias()}}-1:2380"
+      ETCD_INITIAL_CLUSTER_STATE: new
+      ETCD_INITIAL_CLUSTER_TOKEN: tutorial
+      ETCD_NAME: "{{=service('etcd2').getAppAlias()}}-1"
+    deployTo:
+      - patroni2
+
+  - name: etcd3
+    type: docker
+    image: d2cio/patroni
+    version: latest
+    startCommand: etcd
+    env:
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: http://{{=service('etcd3').getAppAlias()}}-1:2380
+      ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+      ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+      ETCD_INITIAL_CLUSTER: "{{=service('etcd1').getAppAlias()}}-1=http://{{=service('etcd1').getAppAlias()}}-1:2380,{{=service('etcd2').getAppAlias()}}-1=http://{{=service('etcd2').getAppAlias()}}-1:2380,{{=service('etcd3').getAppAlias()}}-1=http://{{=service('etcd3').getAppAlias()}}-1:2380"
+      ETCD_INITIAL_CLUSTER_STATE: new
+      ETCD_INITIAL_CLUSTER_TOKEN: tutorial
+      ETCD_NAME: "{{=service('etcd3').getAppAlias()}}-1"
+    deployTo:
+      - patroni3
+
+  - name: patroni1
+    type: docker
+    image: d2cio/patroni
+    version: latest
+    env:
+      PATRONI_NAME: patroni1
+      PATRONI_ETCD_HOSTS: "'{{=service('etcd1').getAppAlias()}}-1:2379','{{=service('etcd2').getAppAlias()}}-1:2379','{{=service('etcd3').getAppAlias()}}-1:2379'"
+      PATRONI_RESTAPI_USERNAME: admin
+      PATRONI_RESTAPI_PASSWORD: admin
+      PATRONI_SUPERUSER_USERNAME: postgres
+      PATRONI_SUPERUSER_PASSWORD: null
+      PATRONI_SCOPE: demo
+      PATRONI_REPLICATION_USERNAME: replicator
+      PATRONI_REPLICATION_PASSWORD: replicate
+      PATRONI_admin_PASSWORD: admin
+      PATRONI_admin_OPTIONS: createdb,createrole
+      ETCDCTL_ENDPOINTS: http://{{=service('etcd1').getAppAlias()}}-1:2379,http://{{=service('etcd2').getAppAlias()}}-1:2379,http://{{=service('etcd3').getAppAlias()}}-1:2379
+    deployTo:
+      - patroni1
+
+  - name: patroni2
+    type: docker
+    image: d2cio/patroni
+    version: latest
+    env:
+      PATRONI_NAME: patroni2
+      PATRONI_ETCD_HOSTS: "'{{=service('etcd1').getAppAlias()}}-1:2379','{{=service('etcd2').getAppAlias()}}-1:2379','{{=service('etcd3').getAppAlias()}}-1:2379'"
+      PATRONI_RESTAPI_USERNAME: admin
+      PATRONI_RESTAPI_PASSWORD: admin
+      PATRONI_SUPERUSER_USERNAME: postgres
+      PATRONI_SUPERUSER_PASSWORD: "{{=service('patroni1').getEnv('PATRONI_SUPERUSER_PASSWORD')}}"
+      PATRONI_SCOPE: demo
+      PATRONI_REPLICATION_USERNAME: replicator
+      PATRONI_REPLICATION_PASSWORD: replicate
+      PATRONI_admin_PASSWORD: admin
+      PATRONI_admin_OPTIONS: createdb,createrole
+      ETCDCTL_ENDPOINTS: http://{{=service('etcd1').getAppAlias()}}-1:2379,http://{{=service('etcd2').getAppAlias()}}-1:2379,http://{{=service('etcd3').getAppAlias()}}-1:2379
+    deployTo:
+      - patroni2
+
+  - name: patroni3
+    type: docker
+    image: d2cio/patroni
+    version: latest
+    env:
+      PATRONI_NAME: patroni3
+      PATRONI_ETCD_HOSTS: "'{{=service('etcd1').getAppAlias()}}-1:2379','{{=service('etcd2').getAppAlias()}}-1:2379','{{=service('etcd3').getAppAlias()}}-1:2379'"
+      PATRONI_RESTAPI_USERNAME: admin
+      PATRONI_RESTAPI_PASSWORD: admin
+      PATRONI_SUPERUSER_USERNAME: postgres
+      PATRONI_SUPERUSER_PASSWORD: "{{=service('patroni1').getEnv('PATRONI_SUPERUSER_PASSWORD')}}"
+      PATRONI_SCOPE: demo
+      PATRONI_REPLICATION_USERNAME: replicator
+      PATRONI_REPLICATION_PASSWORD: replicate
+      PATRONI_admin_PASSWORD: admin
+      PATRONI_admin_OPTIONS: createdb,createrole
+      ETCDCTL_ENDPOINTS: http://{{=service('etcd1').getAppAlias()}}-1:2379,http://{{=service('etcd2').getAppAlias()}}-1:2379,http://{{=service('etcd3').getAppAlias()}}-1:2379
+    deployTo:
+      - patroni3
+
+  - name: haproxy
+    type: docker
+    image: d2cio/patroni
+    version: latest
+    ports:
+      - 5000
+      - 5001
+      - 7000
+    remoteAccess: true
+    startCommand: haproxy
+    env:
+      PATRONI_ETCD_HOSTS: "'{{=service('etcd1').getAppAlias()}}-1:2379','{{=service('etcd2').getAppAlias()}}-1:2379','{{=service('etcd3').getAppAlias()}}-1:2379'"
+      PATRONI_RESTAPI_USERNAME: admin
+      PATRONI_RESTAPI_PASSWORD: admin
+      PATRONI_SUPERUSER_USERNAME: postgres
+      PATRONI_SUPERUSER_PASSWORD: "{{=service('patroni1').getEnv('PATRONI_SUPERUSER_PASSWORD')}}"
+      PATRONI_SCOPE: demo
+      PATRONI_REPLICATION_USERNAME: replicator
+      PATRONI_REPLICATION_PASSWORD: replicate
+      PATRONI_admin_PASSWORD: admin
+      PATRONI_admin_OPTIONS: createdb,createrole
+      ETCDCTL_ENDPOINTS: http://{{=service('etcd1').getAppAlias()}}-1:2379,http://{{=service('etcd2').getAppAlias()}}-1:2379,http://{{=service('etcd3').getAppAlias()}}-1:2379
+    deployTo:
+      - patroni3
+
+  - name: adminer
+    type: docker
+    image: adminer
+    version: latest
+    ports:
+      - 8080
+    remoteAccess: true
+    deployTo:
+      - patroni3
+
+hosts:
+  - name: patroni1
+    requirements:
+      cores: 1
+      memory: 1
+
+  - name: patroni2
+    requirements:
+      cores: 1
+      memory: 1
+
+  - name: patroni3
+    requirements:
+      cores: 1
+      memory: 1
